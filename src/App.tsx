@@ -1,5 +1,6 @@
-import { Component, createSignal } from "solid-js";
+import { Component, createResource, createSignal, lazy } from "solid-js";
 import { degrees, PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import pdfjs from 'pdfjs';
 
 import logo from "./assets/logo.svg";
 import styles from "./App.module.css";
@@ -8,9 +9,20 @@ const App: Component = () => {
   const [text, setText] = createSignal("");
   const [xCoord, setXCoord] = createSignal(0);
   const [yCoord, setYCoord] = createSignal(0);
+  const [pdf_document, setPdfDocument] = createResource(null, getPdf);
+
+  const pdfParams = () => ({ pdf_document: pdf_document(), x_coord: xCoord(), y_coord: yCoord(), text: text() } as PdfEdit);
+
+  const [pdf] = createResource(pdfParams, modifyPdf);
+  // modifyPdf(pdfParams);
+
+  // getPdf().then(setPdfDocument);
+  // const renderTarget = new pdfjs.Document();
+
+
 
   return (
-    <div class={styles.App} class="text-white ">
+    <div class="text-white bg-[#282c34] text-center">
       <header class={styles.header}>
         { // <img src={logo} class={styles.logo} alt="logo" />
         }
@@ -39,34 +51,48 @@ const App: Component = () => {
             onclick={(Event) => {
               Event.preventDefault();
               console.log("submit");
-            }}>
+            }}
+          >
             Submit
           </button>
         </form>
 
-        <pre>
+        <pre class="max-w-xl overflow-clip">
           {text()}
         </pre>
-
+        <canvas id="pdf-canvas" />
       </header>
     </div>
   );
 };
 
+interface PdfEdit {
+  pdf_document: ArrayBuffer | null | undefined;
+  x_coord: number;
+  y_coord: number;
+  text: string;
+}
+
 export default App;
 
-async function modifyPdf() {
-  const existingPdfBytes = await getPdf();
+async function modifyPdf({ pdf_document, x_coord, y_coord, text }: PdfEdit): Promise<ArrayBuffer> {
 
-  const pdfDoc = await PDFDocument.load(existingPdfBytes);
+  console.log("modifyPdf", pdf_document, x_coord, y_coord, text);
+
+
+  if (pdf_document == null) {
+    return (await PDFDocument.create()).save();
+  }
+
+  const pdfDoc = await PDFDocument.load(pdf_document);
   const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
   const pages = pdfDoc.getPages();
   const firstPage = pages[0];
   const { width, height } = firstPage.getSize();
-  firstPage.drawText('This text was added with JavaScript!', {
-    x: 5,
-    y: height / 2 + 300,
+  firstPage.drawText(text, {
+    x: x_coord,
+    y: y_coord,
     size: 50,
     font: helveticaFont,
     color: rgb(0.95, 0.1, 0.1),
@@ -74,11 +100,10 @@ async function modifyPdf() {
   });
 
   const pdfBytes = await pdfDoc.save();
-
-
+  return pdfBytes;
 }
-async function getPdf() {
-  const url = 'https://pdf-lib.js.org/assets/with_update_sections.pdf';
+async function getPdf(): Promise<ArrayBuffer> {
+  const url = window.origin + "/assets/demo.pdf";
   const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
   return existingPdfBytes;
 }
