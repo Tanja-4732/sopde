@@ -2,6 +2,10 @@
 
 ## Development
 
+First, switch to the correct Node version using `nvm use`.  
+(This will use the version specified in [.nvmrc](/.nvmrc).)
+Then, install the dependencies using `pnpm install`.
+
 Run `pnpm dev` to start the development server.
 
 ## License
