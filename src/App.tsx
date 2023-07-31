@@ -1,4 +1,4 @@
-import { Component, createResource, createSignal, lazy } from "solid-js";
+import { Component, createResource, createSignal, lazy, onMount } from "solid-js";
 import { degrees, PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import pdfjs from 'pdfjs';
 
@@ -19,6 +19,12 @@ const App: Component = () => {
   // getPdf().then(setPdfDocument);
   // const renderTarget = new pdfjs.Document();
 
+  let canvas: HTMLCanvasElement;
+  onMount(() => {
+    console.log("uwu");
+    const ctx = canvas.getContext("2d");
+
+  });
 
 
   return (
@@ -60,7 +66,7 @@ const App: Component = () => {
         <pre class="max-w-xl overflow-clip">
           {text()}
         </pre>
-        <canvas id="pdf-canvas" />
+        <canvas ref={canvas} width="256" height="256" />
       </header>
     </div>
   );
