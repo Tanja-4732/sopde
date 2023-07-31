@@ -28,6 +28,7 @@
     "vite-plugin-solid": "^2.7.0"
   },
   "dependencies": {
+    "pdf-lib": "^1.17.1",
     "solid-js": "^1.7.6"
   }
 }
