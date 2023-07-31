@@ -1,9 +1,10 @@
 import { Component, createResource, createSignal, lazy, onMount } from "solid-js";
 import { degrees, PDFDocument, rgb, StandardFonts } from 'pdf-lib';
-import pdfjs from 'pdfjs';
+import { OnProgressParameters, PDFDocumentLoadingTask, PDFDocumentProxy, PDFPageProxy, RenderTask, PageViewport, TextLayerRenderTask, AbortException, AnnotationEditorLayer, AnnotationEditorParamsType, AnnotationEditorType, AnnotationEditorUIManager, AnnotationLayer, AnnotationMode, build, CMapCompressionType, createValidAbsoluteUrl, FeatureTest, getDocument, getFilenameFromUrl, getPdfFilenameFromUrl, getXfaPageViewport, GlobalWorkerOptions, ImageKind, InvalidPDFException, isDataScheme, isPdfFile, loadScript, MissingPDFException, normalizeUnicode, OPS, PasswordResponses, PDFDataRangeTransport, PDFDateString, PDFWorker, PermissionFlag, PixelsPerInch, PromiseCapability, RenderingCancelledException, renderTextLayer, setLayerDimensions, shadow, SVGGraphics, UnexpectedResponseException, updateTextLayer, Util, VerbosityLevel, version, XfaLayer } from "pdfjs-dist";
 
 import logo from "./assets/logo.svg";
 import styles from "./App.module.css";
+import { RenderParameters } from "pdfjs-dist/types/src/display/api";
 
 const App: Component = () => {
   const [text, setText] = createSignal("");
@@ -13,7 +14,7 @@ const App: Component = () => {
 
   const pdfParams = () => ({ pdf_document: pdf_document(), x_coord: xCoord(), y_coord: yCoord(), text: text() } as PdfEdit);
 
-  const [pdf] = createResource(pdfParams, modifyPdf);
+  const [pdf, _] = createResource(pdfParams(), modifyPdf);
   // modifyPdf(pdfParams);
 
   // getPdf().then(setPdfDocument);
@@ -23,7 +24,6 @@ const App: Component = () => {
   onMount(() => {
     console.log("uwu");
     const ctx = canvas.getContext("2d");
-
   });
 
 
@@ -50,13 +50,52 @@ const App: Component = () => {
           <label for="Text">Text content</label>
           <input class="text-black" value={yCoord()} name="y-coord" id="y-coord" type="number" onInput={(Event) => setYCoord(Event.currentTarget.valueAsNumber)} />
 
-
           <label for="Text">Create textfield</label>
           <button type="submit" id="submit"
             class="bg-slate-500 rounded-lg w-fit px-3"
-            onclick={(Event) => {
+            onclick={async (Event) => {
               Event.preventDefault();
               console.log("submit");
+
+
+
+              const my_pdf = pdf();
+              console.log(my_pdf);
+
+              if (my_pdf == null) {
+                console.log("pdf is null");
+                return;
+              }
+
+              const doc = await getDocument(my_pdf).promise;
+              const page = await doc.getPage(0);
+
+
+              // Set the scale of the PDF (optional)
+              const scale = 1.5;
+
+              // Get the viewport
+              const viewport = page.getViewport({ scale });
+
+              // Prepare a canvas element
+              canvas.width = viewport.width;
+              canvas.height = viewport.height;
+              const context = canvas.getContext('2d');
+
+              if (context == null) {
+                console.error("context is null");
+                throw new Error("context is null");
+              }
+
+              const renderContext: RenderParameters = {
+                canvasContext: context,
+                viewport: viewport
+              };
+
+              await page.render(renderContext).promise;
+
+
+
             }}
           >
             Submit
