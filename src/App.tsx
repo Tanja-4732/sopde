@@ -100,6 +100,34 @@ const App: Component = () => {
           >
             Submit
           </button>
+
+          <label for="save-to-disk">Save to disk</label>
+          <button type="submit" id="save-to-disk" name="save-to-disk"
+            class="bg-slate-500 rounded-lg w-fit px-3"
+            onclick={async (Event) => {
+              Event.preventDefault();
+              console.log("Save to disk");
+
+              const my_pdf = pdf();
+              console.log(my_pdf);
+
+              if (my_pdf == null) {
+                console.log("pdf is null");
+                return;
+              }
+
+              // Save the arraybuffer to a file in the browser
+              const blob = new Blob([my_pdf], { type: "application/pdf" });
+              const link = document.createElement('a');
+              link.href = window.URL.createObjectURL(blob);
+              link.download = "modified.pdf";
+              link.click();
+
+
+            }}
+          >
+            Download
+          </button>
         </form>
 
         <pre class="max-w-xl overflow-clip">
