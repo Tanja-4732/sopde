@@ -1,5 +1,5 @@
 import { Component, createEffect, createResource, createSignal, lazy, onMount } from "solid-js";
-import { degrees, PDFDocument, PDFPage, rgb, StandardFonts } from 'pdf-lib';
+import { degrees, PDFDocument, PDFPage, RGB, rgb, StandardFonts } from 'pdf-lib';
 import { OnProgressParameters, PDFDocumentLoadingTask, PDFDocumentProxy, PDFPageProxy, RenderTask, PageViewport, TextLayerRenderTask, AbortException, AnnotationEditorLayer, AnnotationEditorParamsType, AnnotationEditorType, AnnotationEditorUIManager, AnnotationLayer, AnnotationMode, build, CMapCompressionType, createValidAbsoluteUrl, FeatureTest, getDocument, getFilenameFromUrl, getPdfFilenameFromUrl, getXfaPageViewport, GlobalWorkerOptions, ImageKind, InvalidPDFException, isDataScheme, isPdfFile, loadScript, MissingPDFException, normalizeUnicode, OPS, PasswordResponses, PDFDataRangeTransport, PDFDateString, PDFWorker, PermissionFlag, PixelsPerInch, PromiseCapability, RenderingCancelledException, renderTextLayer, setLayerDimensions, shadow, SVGGraphics, UnexpectedResponseException, updateTextLayer, Util, VerbosityLevel, version, XfaLayer } from "pdfjs-dist";
 // GlobalWorkerOptions.workerSrc = await import("pdfjs-dist/build/pdf.worker.js"); // HACK this is the recommended workaround for the worker not being found
 // import { pdfjsWorker } from "pdfjs-dist/build/pdf.worker.js"; // I would prefer this, but it doesn't work (yet)
@@ -15,10 +15,18 @@ const App: Component = () => {
   const [xCoord, setXCoord] = createSignal(42);
   const [yCoord, setYCoord] = createSignal(600);
   const [rotation, setRotation] = createSignal(0);
+  const [rgbColor, setRgbColor] = createSignal(rgb(0.95, 0.1, 0.1));
 
   const [inputPdf, setInputPdf] = createSignal<File | null>(null);
 
-  const pdfParams = () => ({ pdf_document: inputPdf()?.arrayBuffer(), x_coord: xCoord(), y_coord: yCoord(), rotation: rotation(), text: text() } as PdfEdit);
+  const pdfParams = () => ({
+    pdf_document: inputPdf()?.arrayBuffer(),
+    x_coord: xCoord(),
+    y_coord: yCoord(),
+    rotation: rotation(),
+    color: rgbColor(),
+    text: text()
+  } as PdfEdit);
 
   const [pdf, { mutate: mutatePdf, refetch: refetchPdf }] = createResource(pdfParams, modifyPdf);
 
@@ -75,14 +83,48 @@ const App: Component = () => {
             onInput={(Event) => setText(Event.currentTarget.value)}
           />
 
-          <label for="x-coord">x coordinate (in pt)</label>
-          <input class="text-black" value={xCoord()} name="x-coord" id="x-coord" type="number" onInput={(Event) => setXCoord(Event.currentTarget.valueAsNumber)} />
-
-          <label for="y-coord">y coordinate (in pt)</label>
-          <input class="text-black" value={yCoord()} name="y-coord" id="y-coord" type="number" onInput={(Event) => setYCoord(Event.currentTarget.valueAsNumber)} />
+          <label>coordinates (in pt)</label>
+          <div class="flex flex-row gap-1">
+            <input class="text-black" value={xCoord()} name="x-coord" id="x-coord" type="number" onInput={(Event) => setXCoord(Event.currentTarget.valueAsNumber)} />
+            <input class="text-black" value={yCoord()} name="y-coord" id="y-coord" type="number" onInput={(Event) => setYCoord(Event.currentTarget.valueAsNumber)} />
+          </div>
 
           <label for="rotation">rotation (in degrees)</label>
           <input class="text-black" value={rotation()} name="rotation" id="rotation" type="number" onInput={(Event) => setRotation(Event.currentTarget.valueAsNumber)} />
+
+          <label for="rotation">color (RGB)</label>
+          <div class="flex flex-row gap-1">
+            <input
+              class="text-black"
+              value={255 * rgbColor().red}
+              name="color-red"
+              id="color-red"
+              type="number"
+              min="0"
+              max="255"
+              onInput={(Event) => setRgbColor(rgb(Event.currentTarget.valueAsNumber / 255, rgbColor().green, rgbColor().blue))}
+            />
+            <input
+              class="text-black"
+              value={255 * rgbColor().green}
+              name="color-green"
+              id="color-green"
+              type="number"
+              min="0"
+              max="255"
+              onInput={(Event) => setRgbColor(rgb(rgbColor().red, Event.currentTarget.valueAsNumber / 255, rgbColor().blue))}
+            />
+            <input
+              class="text-black"
+              value={255 * rgbColor().blue}
+              name="color-blue"
+              id="color-blue"
+              type="number"
+              min="0"
+              max="255"
+              onInput={(Event) => setRgbColor(rgb(rgbColor().red, rgbColor().green, Event.currentTarget.valueAsNumber / 255))}
+            />
+          </div>
 
           <label for="select-input-pdf">Select input PDF</label>
           <button type="submit" id="select-input-pdf" name="select-input-pdf"
@@ -147,12 +189,13 @@ interface PdfEdit {
   x_coord: number;
   y_coord: number;
   rotation: number;
+  color: RGB,
   text: string;
 }
 
 export default App;
 
-async function modifyPdf({ pdf_document, x_coord, y_coord, rotation, text }: PdfEdit): Promise<ArrayBuffer> {
+async function modifyPdf({ pdf_document, x_coord, y_coord, rotation, color, text }: PdfEdit): Promise<ArrayBuffer> {
   let pdfDoc: PDFDocument;
   if (pdf_document == null) {
     console.warn("The pdf_document is null, using a blank document as template");
@@ -175,7 +218,7 @@ async function modifyPdf({ pdf_document, x_coord, y_coord, rotation, text }: Pdf
     y: y_coord,
     size: 50,
     font: helveticaFont,
-    color: rgb(0.95, 0.1, 0.1),
+    color,
     rotate: degrees(rotation),
   });
 
