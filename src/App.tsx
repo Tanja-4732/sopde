@@ -1,5 +1,5 @@
 import { Component, createEffect, createResource, createSignal, lazy, onMount } from "solid-js";
-import { degrees, PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { degrees, PDFDocument, PDFPage, rgb, StandardFonts } from 'pdf-lib';
 import { OnProgressParameters, PDFDocumentLoadingTask, PDFDocumentProxy, PDFPageProxy, RenderTask, PageViewport, TextLayerRenderTask, AbortException, AnnotationEditorLayer, AnnotationEditorParamsType, AnnotationEditorType, AnnotationEditorUIManager, AnnotationLayer, AnnotationMode, build, CMapCompressionType, createValidAbsoluteUrl, FeatureTest, getDocument, getFilenameFromUrl, getPdfFilenameFromUrl, getXfaPageViewport, GlobalWorkerOptions, ImageKind, InvalidPDFException, isDataScheme, isPdfFile, loadScript, MissingPDFException, normalizeUnicode, OPS, PasswordResponses, PDFDataRangeTransport, PDFDateString, PDFWorker, PermissionFlag, PixelsPerInch, PromiseCapability, RenderingCancelledException, renderTextLayer, setLayerDimensions, shadow, SVGGraphics, UnexpectedResponseException, updateTextLayer, Util, VerbosityLevel, version, XfaLayer } from "pdfjs-dist";
 // GlobalWorkerOptions.workerSrc = await import("pdfjs-dist/build/pdf.worker.entry"); // HACK this is the recommended workaround for the worker not being found
 // import { pdfjsWorker } from "pdfjs-dist/build/pdf.worker.entry"; // I would prefer this, but it doesn't work (yet)
@@ -20,9 +20,10 @@ const App: Component = () => {
   const [xCoord, setXCoord] = createSignal(42);
   const [yCoord, setYCoord] = createSignal(600);
   const [rotation, setRotation] = createSignal(0);
-  const [pdf_document, setPdfDocument] = createResource(getPdf);
 
-  const pdfParams = () => ({ pdf_document: pdf_document(), x_coord: xCoord(), y_coord: yCoord(), rotation: rotation(), text: text() } as PdfEdit);
+  const [inputPdf, setInputPdf] = createSignal<File | null>(null);
+
+  const pdfParams = () => ({ pdf_document: inputPdf()?.arrayBuffer(), x_coord: xCoord(), y_coord: yCoord(), rotation: rotation(), text: text() } as PdfEdit);
 
   const [pdf, { mutate: mutatePdf, refetch: refetchPdf }] = createResource(pdfParams, modifyPdf);
   // modifyPdf(pdfParams);
@@ -56,7 +57,7 @@ const App: Component = () => {
       class="text-white bg-[#282c34] text-center min-h-screen flex flex-col items-center justify-center min-w-fit overflow-auto"
       style="font-size: calc(10px + 2vmin);"
     >
-      <h1 class="text-3xl font-bold">
+      <h1 class="font-bold" style="font-size: calc(15px + 2vmin);">
         Simple online PDF document editor
       </h1>
       <p>
@@ -77,6 +78,28 @@ const App: Component = () => {
 
           <label for="rotation">rotation (in degrees)</label>
           <input class="text-black" value={rotation()} name="rotation" id="rotation" type="number" onInput={(Event) => setRotation(Event.currentTarget.valueAsNumber)} />
+
+          <label for="select-input-pdf">Select input PDF</label>
+          <button type="submit" id="select-input-pdf" name="select-input-pdf"
+            class="bg-slate-500 rounded-lg w-fit px-3"
+            onclick={async (Event) => {
+              Event.preventDefault();
+
+              const input = document.createElement("input");
+              input.type = "file";
+              input.accept = "application/pdf";
+              input.onchange = (Event) => {
+                const file = (Event.target as HTMLInputElement).files?.[0];
+                if (file == null) {
+                  return;
+                }
+                setInputPdf(file);
+              }
+              input.click();
+            }}
+          >
+            Select file
+          </button>
 
           <label for="Text">Show preview</label>
           <button type="submit" id="submit"
@@ -130,7 +153,7 @@ const App: Component = () => {
             Submit
           </button>
 
-          <label for="save-to-disk">Save to disk</label>
+          <label>Save to disk</label>
           <button type="submit" id="save-to-disk" name="save-to-disk"
             class="bg-slate-500 rounded-lg w-fit px-3"
             onclick={async (Event) => {
@@ -190,16 +213,24 @@ export default App;
 
 async function modifyPdf({ pdf_document, x_coord, y_coord, rotation, text }: PdfEdit): Promise<ArrayBuffer> {
 
+
   console.log("modifyPdf", pdf_document, x_coord, y_coord, text);
 
-
+  let pdfDoc: PDFDocument;
   if (pdf_document == null) {
     console.warn("The pdf_document is null, using a blank document as template");
-    return (await PDFDocument.create()).save();
+    pdfDoc = await PDFDocument.create();
+    // DIN A4
+    pdfDoc.addPage([595.28, 841.89]);
   }
-  console.log("pdf_document is not null");
+  else {
+    pdf_document = await pdf_document; // HACK this should be awaited by the caller, using the framework
+    console.log("pdf_document is not null");
+    console.info("The final pdf here is", pdf_document);
+    pdfDoc = await PDFDocument.load(pdf_document);
+  }
 
-  const pdfDoc = await PDFDocument.load(pdf_document);
+
   const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
   const pages = pdfDoc.getPages();
