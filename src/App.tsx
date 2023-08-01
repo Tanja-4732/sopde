@@ -248,11 +248,3 @@ async function modifyPdf({ pdf_document, x_coord, y_coord, rotation, text }: Pdf
   const pdfBytes = await pdfDoc.save();
   return pdfBytes;
 }
-async function getPdf(): Promise<ArrayBuffer> {
-  const url = window.origin + "/src/assets/demo.pdf";
-  const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
-  console.log("getPdf", existingPdfBytes);
-
-  return existingPdfBytes;
-}
-
