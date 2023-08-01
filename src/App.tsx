@@ -10,11 +10,11 @@ const App: Component = () => {
   const [text, setText] = createSignal("");
   const [xCoord, setXCoord] = createSignal(0);
   const [yCoord, setYCoord] = createSignal(0);
-  const [pdf_document, setPdfDocument] = createResource(null, getPdf);
+  const [pdf_document, setPdfDocument] = createResource(getPdf);
 
   const pdfParams = () => ({ pdf_document: pdf_document(), x_coord: xCoord(), y_coord: yCoord(), text: text() } as PdfEdit);
 
-  const [pdf, _] = createResource(pdfParams(), modifyPdf);
+  const [pdf, { mutate: mutatePdf, refetch: refetchPdf }] = createResource(pdfParams, modifyPdf);
   // modifyPdf(pdfParams);
 
   // getPdf().then(setPdfDocument);
@@ -22,7 +22,7 @@ const App: Component = () => {
 
   let canvas: HTMLCanvasElement;
   onMount(() => {
-    console.log("uwu");
+    canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
   });
 
@@ -154,8 +154,10 @@ async function modifyPdf({ pdf_document, x_coord, y_coord, text }: PdfEdit): Pro
 
 
   if (pdf_document == null) {
+    console.warn("The pdf_document is null, using a blank document as template");
     return (await PDFDocument.create()).save();
   }
+  console.log("pdf_document is not null");
 
   const pdfDoc = await PDFDocument.load(pdf_document);
   const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -176,8 +178,10 @@ async function modifyPdf({ pdf_document, x_coord, y_coord, text }: PdfEdit): Pro
   return pdfBytes;
 }
 async function getPdf(): Promise<ArrayBuffer> {
-  const url = window.origin + "/assets/demo.pdf";
+  const url = window.origin + "/src/assets/demo.pdf";
   const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
+  console.log("getPdf", existingPdfBytes);
+
   return existingPdfBytes;
 }
 
