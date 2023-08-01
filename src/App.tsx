@@ -68,7 +68,6 @@ const App: Component = () => {
       <p>
         Create a text box in a PDF document
       </p>
-      <h2 class="text-2xl font-bold">Preview</h2>
       <div class="flex flex-row gap-5 items-start">
         <form class="grid grid-cols-2 gap-2 flex-grow min-w-fit" id="controls">
           <label for="text-input">Text content</label>
@@ -136,7 +135,6 @@ const App: Component = () => {
           </button>
         </form>
         <div class="flex flex-col items-center justify-center ">
-          <h2 class="text-2xl font-bold">Preview</h2>
           <canvas ref={canvas} width="595.28px" height="841.89px" />
         </div>
       </div>
