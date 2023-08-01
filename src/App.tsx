@@ -47,7 +47,7 @@ const App: Component = () => {
           <label for="x-coord">x coordinate (in pt)</label>
           <input class="text-black" value={xCoord()} name="x-coord" id="x-coord" type="number" onInput={(Event) => setXCoord(Event.currentTarget.valueAsNumber)} />
 
-          <label for="Text">Text content</label>
+          <label for="Text">y coordinate (in pt)</label>
           <input class="text-black" value={yCoord()} name="y-coord" id="y-coord" type="number" onInput={(Event) => setYCoord(Event.currentTarget.valueAsNumber)} />
 
           <label for="Text">Create textfield</label>
