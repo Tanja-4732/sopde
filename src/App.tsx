@@ -180,6 +180,9 @@ const App: Component = () => {
           <canvas ref={canvas} width="595.28px" height="841.89px" />
         </div>
       </div>
+      <p>
+        See <a href="https://github.com/Tanja-4732/sopde" class="text-blue-300">the repository</a> for the source code.
+      </p>
     </div>
   );
 };
