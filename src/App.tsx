@@ -16,12 +16,13 @@ const App: Component = () => {
   })
 
 
-  const [text, setText] = createSignal("");
-  const [xCoord, setXCoord] = createSignal(0);
-  const [yCoord, setYCoord] = createSignal(0);
+  const [text, setText] = createSignal("Hello world");
+  const [xCoord, setXCoord] = createSignal(42);
+  const [yCoord, setYCoord] = createSignal(600);
+  const [rotation, setRotation] = createSignal(0);
   const [pdf_document, setPdfDocument] = createResource(getPdf);
 
-  const pdfParams = () => ({ pdf_document: pdf_document(), x_coord: xCoord(), y_coord: yCoord(), text: text() } as PdfEdit);
+  const pdfParams = () => ({ pdf_document: pdf_document(), x_coord: xCoord(), y_coord: yCoord(), rotation: rotation(), text: text() } as PdfEdit);
 
   const [pdf, { mutate: mutatePdf, refetch: refetchPdf }] = createResource(pdfParams, modifyPdf);
   // modifyPdf(pdfParams);
@@ -73,6 +74,9 @@ const App: Component = () => {
 
           <label for="y-coord">y coordinate (in pt)</label>
           <input class="text-black" value={yCoord()} name="y-coord" id="y-coord" type="number" onInput={(Event) => setYCoord(Event.currentTarget.valueAsNumber)} />
+
+          <label for="rotation">rotation (in degrees)</label>
+          <input class="text-black" value={rotation()} name="rotation" id="rotation" type="number" onInput={(Event) => setRotation(Event.currentTarget.valueAsNumber)} />
 
           <label for="Text">Show preview</label>
           <button type="submit" id="submit"
@@ -178,12 +182,13 @@ interface PdfEdit {
   pdf_document: ArrayBuffer | null | undefined;
   x_coord: number;
   y_coord: number;
+  rotation: number;
   text: string;
 }
 
 export default App;
 
-async function modifyPdf({ pdf_document, x_coord, y_coord, text }: PdfEdit): Promise<ArrayBuffer> {
+async function modifyPdf({ pdf_document, x_coord, y_coord, rotation, text }: PdfEdit): Promise<ArrayBuffer> {
 
   console.log("modifyPdf", pdf_document, x_coord, y_coord, text);
 
@@ -206,7 +211,7 @@ async function modifyPdf({ pdf_document, x_coord, y_coord, text }: PdfEdit): Pro
     size: 50,
     font: helveticaFont,
     color: rgb(0.95, 0.1, 0.1),
-    rotate: degrees(-45),
+    rotate: degrees(rotation),
   });
 
   const pdfBytes = await pdfDoc.save();
