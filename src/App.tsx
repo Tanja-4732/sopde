@@ -16,6 +16,7 @@ const App: Component = () => {
   const [yCoord, setYCoord] = createSignal(600);
   const [rotation, setRotation] = createSignal(0);
   const [rgbColor, setRgbColor] = createSignal(rgb(0.95, 0.1, 0.1));
+  const [size, setSize] = createSignal(12);
 
   const [inputPdf, setInputPdf] = createSignal<File | null>(null);
 
@@ -23,6 +24,7 @@ const App: Component = () => {
     pdf_document: inputPdf()?.arrayBuffer(),
     x_coord: xCoord(),
     y_coord: yCoord(),
+    size: size(),
     rotation: rotation(),
     color: rgbColor(),
     text: text()
@@ -61,9 +63,7 @@ const App: Component = () => {
       viewport: viewport
     };
 
-    console.log("rendering");
     await page.render(renderContext).promise;
-    console.log("rendered");
   });
 
   return (
@@ -77,7 +77,7 @@ const App: Component = () => {
         Create a text box in a PDF document
       </p>
       <div class="flex flex-row gap-5 items-start">
-        <form class="grid grid-cols-2 gap-2 flex-grow min-w-fit" id="controls">
+        <div class="grid grid-cols-2 gap-2 flex-grow min-w-fit" id="controls">
           <label for="text-input">Text content</label>
           <textarea value={text()} name="text-input" id="text-input" cols="30" rows="10" class="text-black"
             onInput={(Event) => setText(Event.currentTarget.value)}
@@ -92,7 +92,10 @@ const App: Component = () => {
           <label for="rotation">rotation (in degrees)</label>
           <input class="text-black" value={rotation()} name="rotation" id="rotation" type="number" onInput={(Event) => setRotation(Event.currentTarget.valueAsNumber)} />
 
-          <label for="rotation">color (RGB)</label>
+          <label for="size">size (in pt)</label>
+          <input class="text-black" value={size()} name="size" id="size" type="number" onInput={(Event) => setSize(Event.currentTarget.valueAsNumber)} />
+
+          <label>color (RGB)</label>
           <div class="flex flex-row gap-1">
             <input
               class="text-black"
@@ -124,6 +127,9 @@ const App: Component = () => {
               max="255"
               onInput={(Event) => setRgbColor(rgb(rgbColor().red, rgbColor().green, Event.currentTarget.valueAsNumber / 255))}
             />
+            <button class="" onClick={() => setRgbColor(rgb(0, 0, 0))}>
+              Black
+            </button>
           </div>
 
           <label for="select-input-pdf">Select input PDF</label>
@@ -175,7 +181,7 @@ const App: Component = () => {
           >
             Download
           </button>
-        </form>
+        </div>
         <div class="flex flex-col items-center justify-center ">
           <canvas ref={canvas} width="595.28px" height="841.89px" />
         </div>
@@ -191,6 +197,7 @@ interface PdfEdit {
   pdf_document: ArrayBuffer | null | undefined;
   x_coord: number;
   y_coord: number;
+  size: number;
   rotation: number;
   color: RGB,
   text: string;
@@ -198,7 +205,7 @@ interface PdfEdit {
 
 export default App;
 
-async function modifyPdf({ pdf_document, x_coord, y_coord, rotation, color, text }: PdfEdit): Promise<ArrayBuffer> {
+async function modifyPdf({ pdf_document, x_coord, y_coord, size, rotation, color, text }: PdfEdit): Promise<ArrayBuffer> {
   let pdfDoc: PDFDocument;
   if (pdf_document == null) {
     console.warn("The pdf_document is null, using a blank document as template");
@@ -219,7 +226,7 @@ async function modifyPdf({ pdf_document, x_coord, y_coord, rotation, color, text
   firstPage.drawText(text, {
     x: x_coord,
     y: y_coord,
-    size: 50,
+    size,
     font: helveticaFont,
     color,
     rotate: degrees(rotation),
