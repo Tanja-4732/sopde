@@ -1,4 +1,4 @@
-import { Component, createEffect, createResource, createSignal, lazy, onMount } from "solid-js";
+import { Component, createEffect, createResource, createSignal, lazy, onMount, untrack } from "solid-js";
 import { degrees, PDFDocument, PDFPage, RGB, rgb, StandardFonts } from 'pdf-lib';
 import { OnProgressParameters, PDFDocumentLoadingTask, PDFDocumentProxy, PDFPageProxy, RenderTask, PageViewport, TextLayerRenderTask, AbortException, AnnotationEditorLayer, AnnotationEditorParamsType, AnnotationEditorType, AnnotationEditorUIManager, AnnotationLayer, AnnotationMode, build, CMapCompressionType, createValidAbsoluteUrl, FeatureTest, getDocument, getFilenameFromUrl, getPdfFilenameFromUrl, getXfaPageViewport, GlobalWorkerOptions, ImageKind, InvalidPDFException, isDataScheme, isPdfFile, loadScript, MissingPDFException, normalizeUnicode, OPS, PasswordResponses, PDFDataRangeTransport, PDFDateString, PDFWorker, PermissionFlag, PixelsPerInch, PromiseCapability, RenderingCancelledException, renderTextLayer, setLayerDimensions, shadow, SVGGraphics, UnexpectedResponseException, updateTextLayer, Util, VerbosityLevel, version, XfaLayer } from "pdfjs-dist";
 // GlobalWorkerOptions.workerSrc = await import("pdfjs-dist/build/pdf.worker.js"); // HACK this is the recommended workaround for the worker not being found
@@ -17,6 +17,7 @@ const App: Component = () => {
   const [rotation, setRotation] = createSignal(0);
   const [rgbColor, setRgbColor] = createSignal(rgb(0.95, 0.1, 0.1));
   const [size, setSize] = createSignal(12);
+  const [page, setPage] = createSignal(1);
 
   const [inputPdf, setInputPdf] = createSignal<File | null>(null);
 
@@ -27,7 +28,8 @@ const App: Component = () => {
     size: size(),
     rotation: rotation(),
     color: rgbColor(),
-    text: text()
+    text: text(),
+    page: page()
   } as PdfEdit);
 
   const [pdf, { mutate: mutatePdf, refetch: refetchPdf }] = createResource(pdfParams, modifyPdf);
@@ -44,6 +46,7 @@ const App: Component = () => {
 
   createEffect(async () => {
     const my_pdf = structuredClone(pdf());
+    const page_number = untrack(() => page());
 
     if (my_pdf == null) {
       console.log("pdf is null");
@@ -51,9 +54,15 @@ const App: Component = () => {
     }
 
     const doc = await getDocument(my_pdf).promise;
-    const page = await doc.getPage(1);
+    let pdf_page;
+    try {
+      pdf_page = await doc.getPage(page_number);
+    } catch (e) {
+      console.error(`[render] page ${page_number} does not exist in the document`);
+      return;
+    }
     const scale = 1.5;
-    const viewport = page.getViewport({ scale });
+    const viewport = pdf_page.getViewport({ scale });
 
     canvas.width = viewport.width;
     canvas.height = viewport.height;
@@ -63,7 +72,7 @@ const App: Component = () => {
       viewport: viewport
     };
 
-    await page.render(renderContext).promise;
+    await pdf_page.render(renderContext).promise;
   });
 
   return (
@@ -181,6 +190,21 @@ const App: Component = () => {
           >
             Download
           </button>
+
+          <label for="size">Page number to write to</label>
+          <div class="flex flex-row gap-1">
+            <button class="" onClick={() => setPage(Math.max(page() - 1, 1))}>Previous</button>
+            <input
+              class="text-black"
+              value={page()}
+              name="size"
+              id="size"
+              type="number"
+              min="1"
+              onInput={(Event) => setPage(Event.currentTarget.valueAsNumber)} />
+            <button class="" onClick={() => setPage(page() + 1)}>Next</button>
+          </div>
+
         </div>
         <div class="flex flex-col items-center justify-center ">
           <canvas ref={canvas} width="595.28px" height="841.89px" />
@@ -201,11 +225,12 @@ interface PdfEdit {
   rotation: number;
   color: RGB,
   text: string;
+  page: number;
 }
 
 export default App;
 
-async function modifyPdf({ pdf_document, x_coord, y_coord, size, rotation, color, text }: PdfEdit): Promise<ArrayBuffer> {
+async function modifyPdf({ pdf_document, x_coord, y_coord, size, rotation, color, text, page }: PdfEdit): Promise<ArrayBuffer> {
   let pdfDoc: PDFDocument;
   if (pdf_document == null) {
     console.warn("The pdf_document is null, using a blank document as template");
@@ -221,9 +246,15 @@ async function modifyPdf({ pdf_document, x_coord, y_coord, size, rotation, color
   const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
   const pages = pdfDoc.getPages();
-  const firstPage = pages[0];
-  const { width, height } = firstPage.getSize();
-  firstPage.drawText(text, {
+  const pdf_page = pages[page - 1];
+
+  if (pdf_page == null) {
+    console.error(`[modifyPdf] The page ${page} does not exist`);
+    return await pdfDoc.save();
+  }
+
+  const { width, height } = pdf_page.getSize();
+  pdf_page.drawText(text, {
     x: x_coord,
     y: y_coord,
     size,
