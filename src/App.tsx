@@ -92,10 +92,10 @@ const App: Component = () => {
       class="text-white bg-[#282c34] text-center min-h-screen flex flex-col items-center justify-center min-w-fit overflow-auto"
     >
       <h1 class="font-bold" style="font-size: calc(15px + 2vmin);">
-        Simple online PDF document editor
+        sopde: the simple online PDF document editor
       </h1>
       <p>
-        Create a text box in a PDF document
+        Create a real text box (not just an annotation) in a PDF document, setting its position, size, rotation and color.
       </p>
       <div class="flex flex-row gap-5 items-start">
         <div class="grid grid-cols-2 gap-2 flex-grow min-w-fit" id="controls">
