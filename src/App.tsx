@@ -13,13 +13,25 @@ import { RenderParameters } from "pdfjs-dist/types/src/display/api";
 const App: Component = () => {
   const [text, setText] = createSignal("Hello world");
   const [xCoord, setXCoord] = createSignal(42);
-  const [yCoord, setYCoord] = createSignal(600);
+  const [yCoord, setYCoord] = createSignal(500);
   const [rotation, setRotation] = createSignal(0);
   const [rgbColor, setRgbColor] = createSignal(rgb(0.95, 0.1, 0.1));
   const [size, setSize] = createSignal(12);
   const [page, setPage] = createSignal(1);
+  const [scale, setScale] = createSignal(1);
 
   const [inputPdf, setInputPdf] = createSignal<File | null>(null);
+
+  const numPages = async () => {
+    const my_pdf = inputPdf();
+    if (my_pdf == null) {
+      return 1;
+    }
+
+    const pdfDoc = await PDFDocument.load(await my_pdf.arrayBuffer(), { ignoreEncryption: true });
+    const pages = pdfDoc.getPages();
+    return pages.length;
+  }
 
   const pdfParams = () => ({
     pdf_document: inputPdf()?.arrayBuffer(),
@@ -47,6 +59,7 @@ const App: Component = () => {
   createEffect(async () => {
     const my_pdf = structuredClone(pdf());
     const page_number = untrack(() => page());
+    const my_scale = scale();
 
     if (my_pdf == null) {
       console.log("pdf is null");
@@ -61,8 +74,7 @@ const App: Component = () => {
       console.error(`[render] page ${page_number} does not exist in the document`);
       return;
     }
-    const scale = 1.5;
-    const viewport = pdf_page.getViewport({ scale });
+    const viewport = pdf_page.getViewport({ scale: my_scale });
 
     canvas.width = viewport.width;
     canvas.height = viewport.height;
@@ -168,10 +180,8 @@ const App: Component = () => {
             class="bg-slate-500 rounded-lg w-fit px-3"
             onclick={async (Event) => {
               Event.preventDefault();
-              console.log("Save to disk");
 
               const my_pdf = pdf();
-              console.log(my_pdf);
 
               if (my_pdf == null) {
                 console.log("pdf is null");
@@ -201,19 +211,34 @@ const App: Component = () => {
               id="size"
               type="number"
               min="1"
+              max={numPages()}
               onInput={(Event) => setPage(Event.currentTarget.valueAsNumber)} />
             <button class="" onClick={() => setPage(page() + 1)}>Next</button>
           </div>
 
+          <label for="size">Scale (preview only)</label>
+          <div class="flex flex-row gap-1">
+            <button class="" onClick={() => setScale(Math.max(scale() - 0.1, 0.1))}>Schmol</button>
+            <input
+              class="text-black"
+              value={scale()}
+              name="size"
+              id="size"
+              type="number"
+              step="0.1"
+              min="0.1"
+              onInput={(Event) => setScale(Event.currentTarget.valueAsNumber)} />
+            <button class="" onClick={() => setScale(scale() + 0.1)}>Big</button>
+          </div>
         </div>
         <div class="flex flex-col items-center justify-center ">
-          <canvas ref={canvas} width="595.28px" height="841.89px" />
+          <canvas ref={canvas} />
         </div>
       </div>
       <p>
         See <a href="https://github.com/Tanja-4732/sopde" class="text-blue-300">the repository</a> for the source code.
       </p>
-    </div>
+    </div >
   );
 };
 
@@ -228,6 +253,11 @@ interface PdfEdit {
   page: number;
 }
 
+interface Dimensions {
+  width: number;
+  height: number;
+}
+
 export default App;
 
 async function modifyPdf({ pdf_document, x_coord, y_coord, size, rotation, color, text, page }: PdfEdit): Promise<ArrayBuffer> {
@@ -240,7 +270,7 @@ async function modifyPdf({ pdf_document, x_coord, y_coord, size, rotation, color
   }
   else {
     pdf_document = await pdf_document; // HACK this should be awaited by the caller, using the framework
-    pdfDoc = await PDFDocument.load(pdf_document);
+    pdfDoc = await PDFDocument.load(pdf_document, { ignoreEncryption: true });
   }
 
   const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
