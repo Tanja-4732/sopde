@@ -41,7 +41,7 @@ const App: Component = () => {
   });
 
   createEffect(async () => {
-    const my_pdf = pdf();
+    const my_pdf = structuredClone(pdf());
 
     if (my_pdf == null) {
       console.log("pdf is null");
