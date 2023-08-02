@@ -154,33 +154,40 @@ const App: Component = () => {
           </div>
 
           <label for="select-input-pdf">Select input PDF</label>
-          <button type="submit" id="select-input-pdf" name="select-input-pdf"
-            class="bg-slate-500 rounded-lg w-fit px-3"
-            onclick={async (Event) => {
-              Event.preventDefault();
-
-              const input = document.createElement("input");
-              input.type = "file";
-              input.accept = "application/pdf";
-              input.onchange = (Event) => {
-                const file = (Event.target as HTMLInputElement).files?.[0];
-                if (file == null) {
-                  return;
+          <div class="flex flex-row gap-1">
+            <button type="submit" id="select-input-pdf" name="select-input-pdf"
+              class="bg-slate-500 rounded-lg w-fit px-3"
+              onclick={async (Event) => {
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = "application/pdf";
+                input.onchange = (Event) => {
+                  const file = (Event.target as HTMLInputElement).files?.[0];
+                  if (file == null) {
+                    return;
+                  }
+                  setInputPdf(file);
                 }
-                setInputPdf(file);
-              }
-              input.click();
-            }}
-          >
-            Select file
-          </button>
+                input.click();
+              }}
+            >
+              Select file
+            </button>
+            <button type="submit" id="select-input-pdf" name="select-input-pdf"
+              class="bg-slate-50 rounded-lg w-fit px-3 text-zinc-700"
+              onclick={async (Event) => {
+                setInputPdf(pdf());
+              }}
+              disabled
+            >
+              Loopback
+            </button>
+          </div>
 
           <label>Save to disk</label>
           <button type="submit" id="save-to-disk" name="save-to-disk"
             class="bg-slate-500 rounded-lg w-fit px-3"
             onclick={async (Event) => {
-              Event.preventDefault();
-
               const my_pdf = pdf();
 
               if (my_pdf == null) {
