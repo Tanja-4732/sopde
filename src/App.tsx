@@ -1,4 +1,4 @@
-import { Component, createEffect, createResource, createSignal, lazy, onMount, untrack } from "solid-js";
+import { Component, batch, createEffect, createResource, createSignal, lazy, onMount, untrack } from "solid-js";
 import { degrees, PDFDocument, PDFPage, RGB, rgb, StandardFonts } from 'pdf-lib';
 import { OnProgressParameters, PDFDocumentLoadingTask, PDFDocumentProxy, PDFPageProxy, RenderTask, PageViewport, TextLayerRenderTask, AbortException, AnnotationEditorLayer, AnnotationEditorParamsType, AnnotationEditorType, AnnotationEditorUIManager, AnnotationLayer, AnnotationMode, build, CMapCompressionType, createValidAbsoluteUrl, FeatureTest, getDocument, getFilenameFromUrl, getPdfFilenameFromUrl, getXfaPageViewport, GlobalWorkerOptions, ImageKind, InvalidPDFException, isDataScheme, isPdfFile, loadScript, MissingPDFException, normalizeUnicode, OPS, PasswordResponses, PDFDataRangeTransport, PDFDateString, PDFWorker, PermissionFlag, PixelsPerInch, PromiseCapability, RenderingCancelledException, renderTextLayer, setLayerDimensions, shadow, SVGGraphics, UnexpectedResponseException, updateTextLayer, Util, VerbosityLevel, version, XfaLayer } from "pdfjs-dist";
 // GlobalWorkerOptions.workerSrc = await import("pdfjs-dist/build/pdf.worker.js"); // HACK this is the recommended workaround for the worker not being found
@@ -93,6 +93,20 @@ const App: Component = () => {
 
     await pdf_page.render(renderContext).promise;
   });
+
+  const clickToPdfCoords = (e: MouseEvent) => {
+    const [offset_x, offset_y] = [e.offsetX, e.offsetY];
+    const [canvas_width, canvas_height] = [canvas.width, canvas.height];
+    const canvas_scale = untrack(scale);
+
+    // Convert from canvas coordinates to PDF coordinates
+    const [pdf_width, pdf_height] = [canvas_width / canvas_scale, canvas_height / canvas_scale];
+    const [pdf_x, pdf_y] = [offset_x / canvas_scale, offset_y / canvas_scale];
+
+    // PDF coordinates originate from the **bottom** left corner, so we need to flip the y coordinate
+    const [pdf_x_coord, pdf_y_coord] = [pdf_x, pdf_height - pdf_y];
+    return [pdf_x_coord, pdf_y_coord];
+  };
 
   return (
     <div
@@ -248,7 +262,13 @@ const App: Component = () => {
           </div>
         </div>
         <div class="flex flex-col items-center justify-center ">
-          <canvas ref={canvas} />
+          <canvas ref={canvas} onclick={e => {
+            const [x, y] = clickToPdfCoords(e);
+            batch(() => {
+              setXCoord(x);
+              setYCoord(y);
+            });
+          }} />
         </div>
       </div>
       <p>
