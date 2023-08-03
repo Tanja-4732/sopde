@@ -20,6 +20,7 @@ const App: Component = () => {
   const [size, setSize] = createSignal(12);
   const [page, setPage] = createSignal(1);
   const [scale, setScale] = createSignal(1);
+  const [clickToPlace, setClickToPlace] = createSignal(true);
 
   const [inputPdfFile, setInputPdfFile] = createSignal<File | null>(null);
 
@@ -260,9 +261,22 @@ const App: Component = () => {
               onInput={(Event) => setScale(Event.currentTarget.valueAsNumber)} />
             <button class="" onClick={() => setScale(scale() + 0.1)}>Big</button>
           </div>
+
+          <label for="size">Page number to write to</label>
+          <div class="flex flex-row gap-3">
+            <div class="flex flex-row gap-1">
+              <input type="checkbox" name="click-to-place" id="click-to-place"
+                onInput={(Event) => setClickToPlace(Event.currentTarget.checked)}
+                checked={clickToPlace()}
+              />
+              <label for="click-to-place">Click to place</label>
+            </div>
+          </div>
         </div>
         <div class="flex flex-col items-center justify-center ">
           <canvas ref={canvas} onclick={e => {
+            if (!untrack(clickToPlace)) return;
+
             const [x, y] = clickToPdfCoords(e);
             batch(() => {
               setXCoord(x);
