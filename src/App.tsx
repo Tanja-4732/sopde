@@ -10,6 +10,7 @@ import "pdfjs-dist/build/pdf.worker.entry";
 
 import { RenderParameters } from "pdfjs-dist/types/src/display/api";
 
+
 const App: Component = () => {
   const [text, setText] = createSignal("Hello world");
   const [xCoord, setXCoord] = createSignal(42);
@@ -20,21 +21,27 @@ const App: Component = () => {
   const [page, setPage] = createSignal(1);
   const [scale, setScale] = createSignal(1);
 
-  const [inputPdf, setInputPdf] = createSignal<File | null>(null);
+  const [inputPdfFile, setInputPdfFile] = createSignal<File | null>(null);
 
-  const numPages = async () => {
-    const my_pdf = inputPdf();
+  const [inputPdf, { mutate: setInputPdf, refetch: refetchInputPdf }] = createResource(inputPdfFile, async file => {
+    console.log("loading input pdf");
+    return await file?.arrayBuffer();
+  });
+
+  const [numPages] = createResource(inputPdf, async (my_pdf) => {
+    inputPdf();
+    console.log("loading num pages");
     if (my_pdf == null) {
       return 1;
     }
 
-    const pdfDoc = await PDFDocument.load(await my_pdf.arrayBuffer(), { ignoreEncryption: true });
+    const pdfDoc = await PDFDocument.load(my_pdf, { ignoreEncryption: true });
     const pages = pdfDoc.getPages();
     return pages.length;
-  }
+  }, { initialValue: 1 });
 
   const pdfParams = () => ({
-    pdf_document: inputPdf()?.arrayBuffer(),
+    pdf_document: inputPdf(),
     x_coord: xCoord(),
     y_coord: yCoord(),
     size: size(),
@@ -80,7 +87,7 @@ const App: Component = () => {
     canvas.height = viewport.height;
 
     const renderContext: RenderParameters = {
-      canvasContext: ctx,
+      canvasContext: ctx!,
       viewport: viewport
     };
 
@@ -166,7 +173,7 @@ const App: Component = () => {
                   if (file == null) {
                     return;
                   }
-                  setInputPdf(file);
+                  setInputPdfFile(file);
                 }
                 input.click();
               }}
@@ -174,11 +181,13 @@ const App: Component = () => {
               Select file
             </button>
             <button type="submit" id="select-input-pdf" name="select-input-pdf"
-              class="bg-slate-50 rounded-lg w-fit px-3 text-zinc-700"
+              // class="bg-slate-50 rounded-lg w-fit px-3 text-zinc-700"
+              class="bg-slate-500 rounded-lg w-fit px-3"
               onclick={async (Event) => {
+                console.log("loopback", pdf());
+
                 setInputPdf(pdf());
               }}
-              disabled
             >
               Loopback
             </button>
@@ -276,7 +285,7 @@ async function modifyPdf({ pdf_document, x_coord, y_coord, size, rotation, color
     pdfDoc.addPage([595.28, 841.89]);
   }
   else {
-    pdf_document = await pdf_document; // HACK this should be awaited by the caller, using the framework
+    pdf_document = pdf_document; // HACK this should be awaited by the caller, using the framework
     pdfDoc = await PDFDocument.load(pdf_document, { ignoreEncryption: true });
   }
 
