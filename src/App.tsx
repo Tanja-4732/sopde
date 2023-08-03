@@ -65,7 +65,7 @@ const App: Component = () => {
 
   createEffect(async () => {
     const my_pdf = structuredClone(pdf());
-    const page_number = untrack(() => page());
+    const page_number = untrack(page);
     const my_scale = scale();
 
     if (my_pdf == null) {
