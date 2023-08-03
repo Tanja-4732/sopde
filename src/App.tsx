@@ -21,6 +21,7 @@ const App: Component = () => {
   const [page, setPage] = createSignal(1);
   const [scale, setScale] = createSignal(1);
   const [clickToPlace, setClickToPlace] = createSignal(true);
+  const [focusTextInputOnClick, setFocusTextInputOnClick] = createSignal(false);
 
   const [inputPdfFile, setInputPdfFile] = createSignal<File | null>(null);
 
@@ -56,6 +57,8 @@ const App: Component = () => {
 
   let canvas: HTMLCanvasElement = document.createElement("canvas");
   let ctx: CanvasRenderingContext2D | null = null;
+  let inputDialog: HTMLDialogElement = document.createElement("dialog");
+  let text_input: HTMLTextAreaElement = document.createElement("textarea");
   onMount(() => {
     ctx = canvas.getContext("2d");
     if (ctx == null) {
@@ -124,6 +127,7 @@ const App: Component = () => {
           <label for="text-input">Text content</label>
           <textarea value={text()} name="text-input" id="text-input" cols="30" rows="10" class="text-black"
             onInput={(Event) => setText(Event.currentTarget.value)}
+            ref={text_input}
           />
 
           <label>coordinates (in pt)</label>
@@ -198,10 +202,11 @@ const App: Component = () => {
             <button type="submit" id="select-input-pdf" name="select-input-pdf"
               // class="bg-slate-50 rounded-lg w-fit px-3 text-zinc-700"
               class="bg-slate-500 rounded-lg w-fit px-3"
-              onclick={async (Event) => {
-                console.log("loopback", pdf());
-
-                setInputPdf(pdf());
+              onclick={() => {
+                batch(() => {
+                  setInputPdf(pdf());
+                  setText("");
+                });
               }}
             >
               Loopback
@@ -262,7 +267,7 @@ const App: Component = () => {
             <button class="" onClick={() => setScale(scale() + 0.1)}>Big</button>
           </div>
 
-          <label for="size">Page number to write to</label>
+          <label for="size">Preview click options</label>
           <div class="flex flex-row gap-3">
             <div class="flex flex-row gap-1">
               <input type="checkbox" name="click-to-place" id="click-to-place"
@@ -270,6 +275,13 @@ const App: Component = () => {
                 checked={clickToPlace()}
               />
               <label for="click-to-place">Click to place</label>
+            </div>
+            <div class="flex flex-row gap-1">
+              <input type="checkbox" name="use-input-popup" id="use-input-popup"
+                onInput={(Event) => setFocusTextInputOnClick(Event.currentTarget.checked)}
+                checked={focusTextInputOnClick()}
+              />
+              <label for="use-input-popup">Focus text input on click</label>
             </div>
           </div>
         </div>
@@ -282,12 +294,19 @@ const App: Component = () => {
               setXCoord(x);
               setYCoord(y);
             });
+
+            if (untrack(focusTextInputOnClick)) {
+              text_input.focus();
+            }
           }} />
         </div>
       </div>
       <p>
         See <a href="https://github.com/Tanja-4732/sopde" class="text-blue-300">the repository</a> for the source code.
       </p>
+      <dialog ref={inputDialog}>
+        hiii
+      </dialog>
     </div >
   );
 };
