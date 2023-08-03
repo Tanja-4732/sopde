@@ -243,7 +243,7 @@ const App: Component = () => {
               min="1"
               max={numPages()}
               onInput={(Event) => setPage(Event.currentTarget.valueAsNumber)} />
-            <button class="" onClick={() => setPage(page() + 1)}>Next</button>
+            <button class="" onClick={() => setPage(Math.min(page() + 1, numPages()))}>Next</button>
           </div>
 
           <label for="size">Scale (preview only)</label>
